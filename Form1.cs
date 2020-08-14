@@ -23,12 +23,14 @@ namespace WindowsFormsApp3
     {
 
         private IEnumerable<string> fileNames;
+        private List<string> fileNamesList;
         private IEnumerable<string> wallPapers;
-        private IEnumerator<string> enumerator;
+        
         private List<string> wallpapers;
         private int index = 0;
         private int wallpapersCount;
-       // private Image Image;
+        private string dirWallpapers = "Wallpapers";
+        // private Image Image;
 
         private bool sureClose = false;
 
@@ -38,20 +40,33 @@ namespace WindowsFormsApp3
            
         }
 
-        void MainFunction()
+        bool MainFunction()
         {
             string path = OpenFileFloder();
             if (ProcessFiles(path, out string wallpaperName))
             {
-                Image image = Image.FromFile(wallpaperName);
+                //   MessageBox.Show("lailelaodi");
+                
+                
+                Image image = Image.FromFile(Path.Combine(Application.StartupPath, dirWallpapers, wallpaperName));
+             //   MessageBox.Show("lailelaodi2");
                 pictureBox1.Image = image;
-                image.Dispose();
+            //    MessageBox.Show("lailelaodi2");
+            //    image.Dispose();
+          //      MessageBox.Show("lailelaodi2");
                 if (DialogResult.Yes == MessageBox.Show(this, "是否设置当前最新锁屏壁纸为桌面？","确认", MessageBoxButtons.YesNo, MessageBoxIcon.Question))
                 {
-                    SetWallpaper(wallpaperName);
+                    
+                    
+                    SetWallpaper(Path.Combine(Application.StartupPath, dirWallpapers, wallpaperName));
                 }
-                
-                
+                image.Dispose();
+                return true;
+
+            }
+            else
+            {
+                return false;
             }
             
         }
@@ -69,7 +84,7 @@ namespace WindowsFormsApp3
                 return false;
             }
             bool needReset = false;
-            string dirWallpapers = @"Wallpapers";
+            
             FileInfo fileinfo;
             List<DateTime> dateTimes = new List<DateTime>();
             DateTime dateTime = DateTime.MinValue;      //记录最新文件
@@ -117,18 +132,20 @@ namespace WindowsFormsApp3
 
                             try
                             {
-                                File.Copy(file, Path.Combine(dirWallpapers, fileName));
+                                                               
+                                File.Copy(file, Path.Combine(Application.StartupPath, dirWallpapers, fileName));
                                 //   needReset = true;       //成功拷贝新图片
                             }
                             catch (IOException)
                             {
 
-                                if (new FileInfo(fileName).Length != fileinfo.Length)   //  已经有一张同名图片，但不是同一张图片
+                                if (new FileInfo(Path.Combine(Application.StartupPath, dirWallpapers, fileName)).Length != fileinfo.Length)   //  已经有一张同名图片，但不是同一张图片
                                 {
                                     fileName = createTimeString + "_0.jpeg";
                                     try
                                     {
-                                        File.Copy(file, Path.Combine(dirWallpapers, fileName));
+                                        
+                                        File.Copy(file, Path.Combine(Application.StartupPath, dirWallpapers, fileName));
                                         //     needReset = true;
                                     }
                                     catch (IOException)
@@ -154,11 +171,13 @@ namespace WindowsFormsApp3
                         }
 
                     }
+           //         MessageBox.Show("kaobeiwanle");
 
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
-                    MessageBox.Show("error"); //未处理的其它异常
+                    MessageBox.Show(e.Message); //未处理的其它异常
+                    
                     wallpaperName = null;
                     return false;
                 }
@@ -214,15 +233,19 @@ namespace WindowsFormsApp3
         {
             //  OpenFileFloder();
 
+
                 var files = Directory.EnumerateFiles(OpenFileFloder());
-                var diff = files.Except(fileNames);
+            List<string> nowList = new List<string>(files);
+            var diff = nowList.Except(fileNamesList);
                 if (diff.Count() > 0)
                 {
-                    fileNames = files;
+//                    fileNames = files;
                     if (ProcessFiles(diff, out string wallpaperName))
                     {
-                        SetWallpaper(wallpaperName);
-                     //   timer1.Enabled = true;
+
+                        SetWallpaper(Path.Combine(Application.StartupPath, dirWallpapers, wallpaperName));
+                    //   timer1.Enabled = true;
+                    SetWallpaperList();
                     }
                 }
          
@@ -230,10 +253,11 @@ namespace WindowsFormsApp3
         }
 
         private void Form1_Load(object sender, EventArgs e)
-        {
-            Directory.CreateDirectory(@"Wallpapers");
+        {          
+            Directory.CreateDirectory(Path.Combine(Application.StartupPath, "Wallpapers"));
             fileNames = Directory.EnumerateFiles(OpenFileFloder());
-
+            fileNamesList = new List<string>(fileNames);
+          //  tests = Directory.EnumerateFiles(OpenFileFloder());
             LoadXlm();
 
             if (autoSet.Checked)
@@ -252,14 +276,14 @@ namespace WindowsFormsApp3
             XmlDocument xmlDoc = new XmlDocument();
             try
             {
-                xmlDoc.Load("config.xml");
+                xmlDoc.Load(Path.Combine(Application.StartupPath,"config.xml"));
             }
             catch (FileNotFoundException)
             {
                 xmlDoc.Load(new StringReader("<AutoSetLockWallpaper><AutoStart></AutoStart><AutoSet></AutoSet></AutoSetLockWallpaper>"));
                 XmlDeclaration xmlDeclaration = xmlDoc.CreateXmlDeclaration("1.0", "utf-8", "yes");
                 xmlDoc.InsertBefore(xmlDeclaration, xmlDoc.DocumentElement);
-                xmlDoc.Save("config.xml");
+                xmlDoc.Save(Path.Combine(Application.StartupPath, "config.xml"));
                 return;
             }
 
@@ -297,7 +321,7 @@ namespace WindowsFormsApp3
 
         private void OpenWallpaperDir_Click(object sender, EventArgs e)
         {
-            System.Diagnostics.Process.Start("Explorer.exe", @"Wallpapers");
+            System.Diagnostics.Process.Start("Explorer.exe", Path.Combine(Application.StartupPath, "Wallpapers"));
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
@@ -349,7 +373,7 @@ namespace WindowsFormsApp3
             XmlDocument xmlDocument = new XmlDocument();
             try
             {
-                xmlDocument.Load("config.xml");
+                xmlDocument.Load(Path.Combine(Application.StartupPath, "config.xml"));
             }
             catch (FileNotFoundException)
             {
@@ -366,7 +390,7 @@ namespace WindowsFormsApp3
             {
                 xmlNode.InnerText = "No";
             }
-            xmlDocument.Save("config.xml");
+            xmlDocument.Save(Path.Combine(Application.StartupPath, "config.xml"));
 
         }
 
@@ -410,15 +434,31 @@ namespace WindowsFormsApp3
 
         private void Form1_Shown(object sender, EventArgs e)
         {
-            MainFunction();
-            wallPapers = Directory.EnumerateFiles("Wallpapers");
+            bool isFirstShow = MainFunction();
+            SetWallpaperList();
+
+            if (!isFirstShow)
+            {
+                if (wallpapers.Count() > 0)
+                {
+                    pictureBox1.Image = Image.FromFile(wallpapers[index]);
+                }
+
+            }
+            else
+            {
+                index = wallpapersCount - 1;
+            }
+
+
+        }
+
+        private void SetWallpaperList()
+        {
+            //throw new NotImplementedException();
+            wallPapers = Directory.EnumerateFiles(Path.Combine(Application.StartupPath,"Wallpapers"));
             wallpapers = wallPapers.ToList();
             wallpapersCount = wallpapers.Count;
-         //   enumerator = wallPapers.GetEnumerator();
-            if (wallpapers.Count() > 0)
-            {
-                pictureBox1.Image = Image.FromFile(wallpapers[index]);
-            }
         }
 
         private void pictureBox1_Click(object sender, EventArgs e)
